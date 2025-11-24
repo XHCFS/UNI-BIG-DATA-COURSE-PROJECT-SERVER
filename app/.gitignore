@@ -1,0 +1,12 @@
+# Ignore local data files
+/data/*
+*.csv
+*.csv.gz
+*.parquet
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
