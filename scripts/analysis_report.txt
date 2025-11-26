@@ -1,0 +1,264 @@
+25/11/25 22:00:47 WARN Utils: Your hostname, v2202511243574400488 resolves to a loopback address: 127.0.1.1; using 152.53.160.43 instead (on interface eth0)
+25/11/25 22:00:47 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+25/11/25 22:00:48 INFO SparkContext: Running Spark version 3.5.1
+25/11/25 22:00:48 INFO SparkContext: OS info Linux, 6.12.57+deb13-amd64, amd64
+25/11/25 22:00:48 INFO SparkContext: Java version 17.0.17
+25/11/25 22:00:48 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+25/11/25 22:00:48 WARN SparkConf: Note that spark.local.dir will be overridden by the value set by the cluster manager (via SPARK_LOCAL_DIRS in mesos/standalone/kubernetes and LOCAL_DIRS in YARN).
+25/11/25 22:00:48 INFO ResourceUtils: ==============================================================
+25/11/25 22:00:48 INFO ResourceUtils: No custom resources configured for spark.driver.
+25/11/25 22:00:48 INFO ResourceUtils: ==============================================================
+25/11/25 22:00:48 INFO SparkContext: Submitted application: GHCN-D Chunked Analysis
+25/11/25 22:00:48 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(cores -> name: cores, amount: 1, script: , vendor: , memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: Map(cpus -> name: cpus, amount: 1.0)
+25/11/25 22:00:48 INFO ResourceProfile: Limiting resource is cpu
+25/11/25 22:00:48 INFO ResourceProfileManager: Added ResourceProfile id: 0
+25/11/25 22:00:48 INFO SecurityManager: Changing view acls to: root
+25/11/25 22:00:48 INFO SecurityManager: Changing modify acls to: root
+25/11/25 22:00:48 INFO SecurityManager: Changing view acls groups to: 
+25/11/25 22:00:48 INFO SecurityManager: Changing modify acls groups to: 
+25/11/25 22:00:48 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: root; groups with view permissions: EMPTY; users with modify permissions: root; groups with modify permissions: EMPTY
+25/11/25 22:00:48 INFO Utils: Successfully started service 'sparkDriver' on port 39063.
+25/11/25 22:00:48 INFO SparkEnv: Registering MapOutputTracker
+25/11/25 22:00:48 INFO SparkEnv: Registering BlockManagerMaster
+25/11/25 22:00:48 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+25/11/25 22:00:48 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+25/11/25 22:00:48 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+25/11/25 22:00:48 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-cc07cf20-aa31-4299-b5bf-e219e69457d9
+25/11/25 22:00:49 INFO MemoryStore: MemoryStore started with capacity 5.8 GiB
+25/11/25 22:00:49 INFO SparkEnv: Registering OutputCommitCoordinator
+25/11/25 22:00:49 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+25/11/25 22:00:49 WARN Utils: Service 'SparkUI' could not bind on port 4040. Attempting port 4041.
+25/11/25 22:00:49 INFO Utils: Successfully started service 'SparkUI' on port 4041.
+25/11/25 22:00:49 INFO Executor: Starting executor ID driver on host v2202511243574400488.happysrv.de
+25/11/25 22:00:49 INFO Executor: OS info Linux, 6.12.57+deb13-amd64, amd64
+25/11/25 22:00:49 INFO Executor: Java version 17.0.17
+25/11/25 22:00:49 INFO Executor: Starting executor with user classpath (userClassPathFirst = false): ''
+25/11/25 22:00:49 INFO Executor: Created or updated repl class loader org.apache.spark.util.MutableURLClassLoader@6b3a1453 for default.
+25/11/25 22:00:49 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 39885.
+25/11/25 22:00:49 INFO NettyBlockTransferService: Server created on v2202511243574400488.happysrv.de:39885
+25/11/25 22:00:49 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+25/11/25 22:00:49 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, v2202511243574400488.happysrv.de, 39885, None)
+25/11/25 22:00:49 INFO BlockManagerMasterEndpoint: Registering block manager v2202511243574400488.happysrv.de:39885 with 5.8 GiB RAM, BlockManagerId(driver, v2202511243574400488.happysrv.de, 39885, None)
+25/11/25 22:00:49 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, v2202511243574400488.happysrv.de, 39885, None)
+25/11/25 22:00:49 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, v2202511243574400488.happysrv.de, 39885, None)
+
+================================================================================
+GHCN-D CLIMATE DATA QUALITY ANALYSIS REPORT
+================================================================================
+
+Loading data from HDFS...
+
+================================================================================
+BASIC STATISTICS
+================================================================================
+
+Total Records:      2,895,739,748
+Total Stations:     113,942
+Total Countries:    219
+Year Range:         1763 - 2019
+Missing Values:     0 (0.00%)
+
+================================================================================
+TOP 20 STATIONS BY RECORD COUNT
+================================================================================
+
++-----------+-------+-------+-----+----+----+---------+
+|Station ID |Country|Records|Years|From|To  |Missing %|
++-----------+-------+-------+-----+----+----+---------+
+|USW00093822|US     |451230 |119  |1901|2019|0.0      |
+|USW00014898|US     |449617 |134  |1886|2019|0.0      |
+|USW00024157|US     |449270 |131  |1889|2019|0.0      |
+|USW00014936|US     |444561 |139  |1881|2019|0.0      |
+|USW00013880|US     |430890 |83   |1937|2019|0.0      |
+|USW00093820|US     |428490 |138  |1872|2019|0.0      |
+|USW00026617|US     |425983 |115  |1900|2019|0.0      |
+|USW00024128|US     |414734 |143  |1877|2019|0.0      |
+|USW00094014|US     |411691 |125  |1894|2019|0.0      |
+|USW00014840|US     |411127 |124  |1896|2019|0.0      |
+|USW00023066|US     |407553 |120  |1900|2019|0.0      |
+|USW00014848|US     |406420 |124  |1893|2019|0.0      |
+|USW00013891|US     |403636 |110  |1910|2019|0.0      |
+|USC00129430|US     |397052 |119  |1901|2019|0.0      |
+|USW00094849|US     |391043 |104  |1916|2019|0.0      |
+|USW00094728|US     |389282 |151  |1869|2019|0.0      |
+|USW00014734|US     |388040 |117  |1893|2019|0.0      |
+|USW00013966|US     |387772 |120  |1897|2019|0.0      |
+|USW00022536|US     |386882 |70   |1950|2019|0.0      |
+|USW00027502|US     |384953 |111  |1901|2019|0.0      |
++-----------+-------+-------+-----+----+----+---------+
+only showing top 20 rows
+
+
+================================================================================
+TOP 20 COUNTRIES BY NUMBER OF STATIONS
+================================================================================
+
++-------+--------+----------+
+|Country|Stations|Records   |
++-------+--------+----------+
+|US     |60812   |1619987382|
+|AS     |17088   |289769893 |
+|CA     |8747    |231954473 |
+|BR     |5989    |61492891  |
+|MX     |5249    |158646107 |
+|IN     |3807    |63821560  |
+|SW     |1721    |38976250  |
+|SF     |1166    |33456333  |
+|GM     |1123    |61417226  |
+|RS     |1123    |84241584  |
+|FI     |922     |16419225  |
+|NO     |460     |20553904  |
+|NL     |386     |16504230  |
+|KZ     |329     |10010846  |
+|WA     |283     |1959561   |
+|CH     |228     |19503587  |
+|RQ     |209     |8861036   |
+|SP     |207     |9441387   |
+|UP     |204     |8408700   |
+|JA     |202     |13268710  |
++-------+--------+----------+
+only showing top 20 rows
+
+
+================================================================================
+OBSERVATION ELEMENT DISTRIBUTION (Top 15)
+================================================================================
+
++-------+----------+--------+
+|Element|Records   |Stations|
++-------+----------+--------+
+|PRCP   |1010979587|111941  |
+|TMAX   |431739106 |40127   |
+|TMIN   |430029500 |40023   |
+|SNOW   |329526282 |65555   |
+|SNWD   |280435128 |58427   |
+|TOBS   |170485370 |15686   |
+|TAVG   |88936559  |9435    |
+|WESD   |12469725  |19942   |
+|PGTM   |9324041   |1416    |
+|WT01   |9095803   |16791   |
+|AWND   |8919151   |1174    |
+|WSF2   |7099897   |995     |
+|WDF2   |7099592   |995     |
+|WSF5   |7032247   |984     |
+|WDF5   |7024967   |983     |
++-------+----------+--------+
+only showing top 15 rows
+
+
+================================================================================
+TEMPERATURE STATISTICS
+================================================================================
+
+Total Temperature Records:  861,768,606
+Sentinel Values (9999):     0
+Out of Range (-90°C - 60°C):34,655
+Null Values:                0
+
+Top 10 Stations by Temperature Records:
+
++-----------+-------+------------+-----------+------------+-----------+
+|Station ID |Country|TMAX Records|Avg TMAX °C|TMIN Records|Avg TMIN °C|
++-----------+-------+------------+-----------+------------+-----------+
+|ITE00100554|IT     |89759       |17.0       |89759       |9.8        |
+|EZE00100082|EZ     |84126       |13.0       |84126       |6.1        |
+|GM000004204|GM     |69730       |13.8       |69729       |4.6        |
+|ITE00100550|IT     |69392       |17.5       |69394       |10.3       |
+|BE000006447|BE     |66694       |14.0       |65797       |6.0        |
+|UK000047811|UK     |63528       |13.0       |63519       |5.6        |
+|UK000056225|UK     |60119       |13.9       |60174       |6.2        |
+|CA006158350|CA     |59650       |12.3       |59647       |3.8        |
+|AU000005901|AU     |59788       |14.0       |59372       |6.3        |
+|ASN00066062|AS     |58555       |21.7       |58555       |13.8       |
++-----------+-------+------------+-----------+------------+-----------+
+only showing top 10 rows
+
+
+================================================================================
+PRECIPITATION STATISTICS
+================================================================================
+
+Total Precipitation Records: 1,010,979,587
+Null Values:                 0
+Days with Precipitation:     276,587,087
+
+Top 10 Stations by Precipitation Records:
+
++-----------+-------+-------+------+------+
+|Station ID |Country|Records|Avg mm|Max mm|
++-----------+-------+-------+------+------+
+|EZE00100082|EZ     |73322  |1.3   |90.0  |
+|ITE00100550|IT     |71221  |1.8   |155.7 |
+|GM000004204|GM     |67154  |1.6   |110.0 |
+|GM000010962|GM     |64947  |3.3   |138.5 |
+|ITE00100552|IT     |64283  |3.5   |417.8 |
+|ITE00105250|IT     |64144  |1.5   |120.3 |
+|NLE00100499|NL     |62932  |2.1   |75.6  |
+|NLM00006235|NL     |61499  |2.0   |83.5  |
+|CA006158350|CA     |60767  |2.2   |98.6  |
+|UK000056225|UK     |60012  |1.8   |87.9  |
++-----------+-------+-------+------+------+
+only showing top 10 rows
+
+
+================================================================================
+TEMPORAL COVERAGE - FIRST 10 YEARS
+================================================================================
+
++----+-------+--------+
+|Year|Records|Stations|
++----+-------+--------+
+|1763|730    |1       |
+|1764|732    |1       |
+|1765|730    |1       |
+|1766|730    |1       |
+|1767|730    |1       |
+|1768|732    |1       |
+|1769|730    |1       |
+|1770|730    |1       |
+|1771|730    |1       |
+|1772|732    |1       |
++----+-------+--------+
+only showing top 10 rows
+
+
+================================================================================
+TEMPORAL COVERAGE - LAST 10 YEARS
+================================================================================
+
++----+--------+--------+
+|Year|Records |Stations|
++----+--------+--------+
+|2019|13192592|36803   |
+|2018|34115175|40566   |
+|2017|34886415|41148   |
+|2016|35363805|41235   |
+|2015|34949837|41170   |
+|2014|34489174|41247   |
+|2013|35472563|41936   |
+|2012|36319991|42075   |
+|2011|36698777|41060   |
+|2010|39742582|40274   |
++----+--------+--------+
+only showing top 10 rows
+
+
+================================================================================
+DATA QUALITY TRENDS (2015-2024)
+================================================================================
+
++----+--------+--------+---------+
+|Year|Records |Stations|Missing %|
++----+--------+--------+---------+
+|2019|13192592|36803   |0.0      |
+|2018|34115175|40566   |0.0      |
+|2017|34886415|41148   |0.0      |
+|2016|35363805|41235   |0.0      |
+|2015|34949837|41170   |0.0      |
++----+--------+--------+---------+
+
+
+================================================================================
+ANALYSIS COMPLETE
+================================================================================
+
