@@ -25,14 +25,14 @@ spark.sparkContext.setLogLevel("ERROR")
 # PATHS INITIALIZATION
 # ============================================================================
 
-table_name = "yearly_aggregates"
+table_name = "coverage"
 
 if not table_name:
     raise ValueError("ERROR: Missing table name..")
 
-extreme_events_table_path = "hdfs:///ghcnd/agg_tables/extreme_events/"
+monthly_table_path = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
 
-if not extreme_events_table_path:
+if not monthly_table_path:
     raise ValueError("ERROR: where is monthly table..")
 
 
@@ -48,33 +48,38 @@ print(f"CREATING AGGREGATED TABLE FOR {table_name}!")
 print("="*80 + "\n")
 
 # Read data
-print("Loading data from extreme events table...")
-events  = spark.read.parquet(extreme_events_table_path)
-       
+print("Loading data from monthly table...")
+monthly = spark.read.parquet(monthly_table_path)
 
 # ============================================================================
 # AGGREGATION LOGIC 
 # ============================================================================
+
 print("\n" + "="*80)
 print("RUNNING AGGREGATION PROCESSING...")
 print("="*80)
 
-events = events.withColumn("year", year(col("date")))
-
-# ====================================================================
-# COUNT EVENTS PER TYPE
-# ====================================================================
-
-final_table = (
-    events.groupBy("station_id", "year")
-    .agg(
-        count(when(col("event_type") == "heatwave", True)).alias("heatwave_count"),
-        count(when(col("event_type") == "coldwave", True)).alias("coldwave_count"),
-        count(when(col("event_type") == "heavy_precip", True)).alias("heavy_precip_count"),
-        count(when(col("event_type") == "heavy_snow", True)).alias("snowfall_count")
-    )
+coverage = monthly.groupBy("station_id", "year").agg(
+    _sum("missing_tmin").alias("missing_tmin"),
+    _sum("missing_tmax").alias("missing_tmax"),
+    _sum("missing_precip").alias("missing_precip"),
+    _sum("missing_snow").alias("missing_snow")
 )
 
+# Compute missing percentage (out of 12 months per element)
+coverage = coverage.withColumn(
+    "days_in_year",
+    when((col("year") % 4 == 0) & ((col("year") % 100 != 0) | (col("year") % 400 == 0)), 366)
+    .otherwise(365)
+)
+
+final_table = coverage.withColumn(
+    "missing_percentage",
+    _round(
+        (col("missing_tmin") + col("missing_tmax") + col("missing_precip") + col("missing_snow")) / (col("days_in_year") * 4) * 100,
+        2
+    )
+)
 
 # =====================================================================
 # SAVE TABLE
