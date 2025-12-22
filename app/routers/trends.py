@@ -13,7 +13,7 @@ COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
 DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
-@router.get("/trends")
+@router.get("/")
 def get_trends_data(
     country_prefix: str = Query(...),
     start_year: int = Query(...),

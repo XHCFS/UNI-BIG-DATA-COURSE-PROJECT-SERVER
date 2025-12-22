@@ -14,7 +14,7 @@ COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
 DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
-@router.get("/overview")
+@router.get("/")
 def get_overview(
     country_prefix: str = Query(...),
     start_year: int = Query(...),
