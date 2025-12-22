@@ -1,16 +1,10 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
+from pyspark.sql.functions import col, avg, sum
 
 router = APIRouter(prefix="/seasons", tags=["seasons"])
 
 MONTHLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
-YEARLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/yearly_aggregates/"
-
-YEARLY_EXTREME_COUNTS_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_aggregates/"
-EXTREME_DAY_YEARLY_SUMMARY_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_summary/"
-
-COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
-DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
 @router.get("/")
@@ -19,71 +13,74 @@ def get_seasons_data(
     start_year: int = Query(...),
     end_year: int = Query(...)
 ):
-    # TODO:
-    # Load aggregated tables needed and filter by station_id and year
-    # Use Spark to process and calculate the values need for dashboard page
-
-    # ====================================================================
-    # Using hardcoded values for now
-    # ====================================================================
-
-    # NOTE: calculate the average values across all stations in the selected country
-    # NOTE: calculate the average values for each month in all years in the selected period
+    # Load aggregated tables and filter by station_id and year
+    df = spark.read.parquet(MONTHLY_AGG_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
 
     # Values from MONTHLY_AGG 
     # ====================================================================
 
-    # Seasons Summary
-    winter = {
-        "avg_temp": 5,
-        "temp_range": { "min": -5, "max": 15 },
-        "avg_precip": 80,
-        "avg_snow_depth": 36
+    monthly_agg_df = df.groupBy("month").agg(
+        avg("avg_tmin").alias("avg_tmin"),
+        avg("avg_tmax").alias("avg_tmax"),
+        sum("total_precip").alias("total_precip"),
+        avg("avg_snow_depth").alias("avg_snow_depth")
+    ).orderBy("month")
+
+    monthly_agg_df = monthly_agg_df.withColumn("avg_temp", (col("avg_tmin") + col("avg_tmax")) / 2)
+
+    season_months = {
+        "Winter": [12, 1, 2],
+        "Spring": [3, 4, 5],
+        "Summer": [6, 7, 8],
+        "Autumn": [9, 10, 11]
     }
 
-    spring = {
-        "avg_temp": 22,
-        "temp_range": { "min": 18, "max": 24 },
-        "avg_precip": 40,
-        "avg_snow_depth": 0
-    }
-
-    autumn = {
-        "avg_temp": 15,
-        "temp_range": { "min": 11, "max": 20 },
-        "avg_precip": 95,
-        "avg_snow_depth": 3
-    }
-
-    summer = {
-        "avg_temp": 27,
-        "temp_range": { "min": 25, "max": 31 },
-        "avg_precip": 2,
-        "avg_snow_depth": 0
-    }
-    
-    # Monthly data (for bar charts)
+    rows = monthly_agg_df.collect()
     monthly_data = []
+    for row in rows:
+        if row.month in season_months["Winter"]:
+            season = "Winter"
+        elif row.month in season_months["Spring"]:
+            season = "Spring"
+        elif row.month in season_months["Summer"]:
+            season = "Summer"
+        else:
+            season = "Autumn"
 
-    data_example = {
-        "month": 1,
-        "avg_tmin": -3,
-        "avg_tmax": 5,
-        "avg_temp": 1,
-        "avg_precip": 300,
-        "season": "Winter"
-    }
-    monthly_data.append(data_example)
+        monthly_data.append({
+            "month": row.month,
+            "avg_tmin": row.avg_tmin,
+            "avg_tmax": row.avg_tmax,
+            "avg_temp": row.avg_temp,
+            "total_precip": row.total_precip,
+            "avg_snow_depth": row.avg_snow_depth,
+            "season": season
+        })
+
+
+    seasonal_summary = {}
+    for season, months in season_months.items():
+        season_rows = [m for m in monthly_data if m["month"] in months]
+        if season_rows:
+            avg_temp = sum(m["avg_temp"] for m in season_rows) / len(season_rows)
+            avg_tmin = min(m["avg_tmin"] for m in season_rows)
+            avg_tmax = max(m["avg_tmax"] for m in season_rows)
+            total_precip = sum(m["total_precip"] for m in season_rows) / len(season_rows)
+            avg_snow_depth = sum(m["avg_snow_depth"] for m in season_rows) / len(season_rows)
+
+            seasonal_summary[season.lower()] = {
+                "avg_temp": avg_temp,
+                "temp_range": {"min": avg_tmin, "max": avg_tmax},
+                "total_precip": total_precip,
+                "avg_snow_depth": avg_snow_depth
+            }
 
     # ====================================================================
 
     return {
-        "seasonal_summary": {
-            "winter": winter,
-            "spring": spring,
-            "summer": summer,
-            "autumn": autumn
-        },
+        "seasonal_summary": seasonal_summary,
         "monthly_data": monthly_data
     }
-

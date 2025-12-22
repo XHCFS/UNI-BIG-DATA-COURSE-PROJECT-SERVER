@@ -1,16 +1,11 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
+from pyspark.sql.functions import col, avg, sum, concat_ws, lpad
 
 router = APIRouter(prefix="/trends", tags=["trends"])
 
 MONTHLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
 YEARLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/yearly_aggregates/"
-
-YEARLY_EXTREME_COUNTS_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_aggregates/"
-EXTREME_DAY_YEARLY_SUMMARY_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_summary/"
-
-COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
-DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
 @router.get("/")
@@ -19,14 +14,6 @@ def get_trends_data(
     start_year: int = Query(...),
     end_year: int = Query(...)
 ):
-    # TODO:
-    # Load aggregated tables needed and filter by station_id and year
-    # Use Spark to process and calculate the values need for dashboard page
-
-    # ====================================================================
-    # Using hardcoded values for now
-    # ====================================================================
-
     # Period length determine aggregation level
     period_length = end_year - start_year + 1
     if period_length * 12 > 200:
@@ -34,45 +21,49 @@ def get_trends_data(
     else:
         time_unit = "month"
 
-    # NOTE: calculate the average values across all stations in the selected country
+    # Monthly
+    # ====================================================================
+    if time_unit == "month":
+        df = spark.read.parquet(MONTHLY_AGG_PATH).filter(
+            (col("station_id").startswith(country_prefix)) &
+            (col("year") >= start_year) & (col("year") <= end_year)
+        )
+
+        # Create a timestamp like "YYYY-MM"
+        df = df.withColumn("timestamp", concat_ws("-", col("year"), lpad(col("month"), 2, "0")))
+
+    # Yearly
+    # ====================================================================
+    else:
+        df = spark.read.parquet(YEARLY_AGG_PATH).filter(
+            (col("station_id").startswith(country_prefix)) &
+            (col("year") >= start_year) & (col("year") <= end_year)
+        )
+
+        df = df.withColumn("timestamp", col("year").cast("string"))
+
+
+    agg_df = df.groupBy("timestamp").agg(
+        avg("avg_tmin").alias("avg_tmin"),
+        avg("avg_tmax").alias("avg_tmax"),
+        sum("total_precip").alias("total_precip"),
+        avg("avg_snow_depth").alias("avg_snow_depth")
+    ).orderBy("timestamp")
+
+    rows = agg_df.collect()
 
     # Temperature
     # ====================================================================
-    temperature_points = []
-
-    temperature_point_example = {
-        "timestamp": "2000-01",
-
-    # Values from MONTHLY_AGG or YEARLY_AGG
-        "avg_tmin": 12,
-        "avg_tmax": 40,
-    }
-    temperature_points.append(temperature_point_example)
-
+    temperature_points = [{"timestamp": row.timestamp, "avg_tmin": row.avg_tmin, "avg_tmax": row.avg_tmax} for row in rows]
+    
     # Precipitation
     # ====================================================================
-    precip_points = []
-
-    precip_point_example = {
-        "timestamp": "2000-01",
-
-    # Values from MONTHLY_AGG or YEARLY_AGG
-        "total_precip": 860,
-    }
-    precip_points.append(precip_point_example)
-
+    precip_points = [{"timestamp": row.timestamp, "total_precip": row.total_precip} for row in rows]
+    
     # Snow Depth
     # ====================================================================
-    snow_points = []
-
-    snow_point_example = {
-        "timestamp": "2000-01",
-
-    # Values from MONTHLY_AGG or YEARLY_AGG
-        "avg_snow_depth": 30
-    }
-    snow_points.append(snow_point_example)
-
+    snow_points = [{"timestamp": row.timestamp, "avg_snow_depth": row.avg_snow_depth} for row in rows]
+    
 
     # ====================================================================
 
