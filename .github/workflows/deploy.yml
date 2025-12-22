@@ -14,15 +14,14 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          port: 22
-          command_timeout: 5m 
+          port: "22"                 # Added quotes to force string format
+          command_timeout: 10m
           script: |
             echo "Starting Deployment..."
             
-            # Run the script. Adjust path if it is not in the home directory.
-            sh /home/${{ secrets.USERNAME }}/local_deploy.sh
+            # Run the script
+            sh ~/UNI-BIG-DATA-COURSE-PROJECT-SERVER/local_deploy.sh
             
-            # Check exit status of the script
             if [ $? -eq 0 ]; then
                echo "Deployment script finished successfully."
             else
@@ -34,4 +33,4 @@ jobs:
             sleep 5
             
             echo "Fetching recent logs for ghcnd-api..."
-            sudo journalctl -u ghcnd-api -n 100 --no-pager
+            journalctl -u ghcnd-api -n 100 --no-pager
