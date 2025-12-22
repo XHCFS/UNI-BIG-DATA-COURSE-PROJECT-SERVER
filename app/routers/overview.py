@@ -44,19 +44,18 @@ def get_overview(
         avg("avg_snow_depth").alias("avg_snow_depth")
     ).first()
 
-
     # Temperature
-    avg_min_temp = yearly_stats["avg_tmin"]
-    avg_max_temp = yearly_stats["avg_tmax"]
+    avg_min_temp = yearly_stats["avg_tmin"] if yearly_stats else None
+    avg_max_temp = yearly_stats["avg_tmax"] if yearly_stats else None
 
     # Preciptation
-    total_precip = yearly_stats["total_precip"]
+    total_precip = yearly_stats["total_precip"] if yearly_stats else None
 
     # Snow Depth
-    avg_snow_depth = yearly_stats["avg_snow_depth"]
+    avg_snow_depth = yearly_stats["avg_snow_depth"] if yearly_stats else None
 
     # Extreme Events Count
-    extreme_counts = (
+    extreme_counts_row = (
         yearly_extreme_df.withColumn(
             "total_events",
             col("heatwave_count")
@@ -64,13 +63,15 @@ def get_overview(
             + col("heavy_precip_count")
             + col("snowfall_count")
         )
-        .agg(sum("total_events")).first()[0]
+        .agg(sum("total_events")).first()
     )
+    extreme_counts = extreme_counts_row[0] if extreme_counts_row else None
 
     # Values from COVERAGE_TABLE 
     # ====================================================================
     # Data Coverage
-    data_coverage = coverage_df.agg(avg("missing_percentage")).first()[0]
+    coverage_row = coverage_df.agg(avg("missing_percentage")).first()
+    data_coverage = coverage_row[0] if coverage_row else None
 
 
     # Values from EXTREME_DAY_YEARLY_SUMMARY
@@ -86,10 +87,13 @@ def get_overview(
     extreme_events_max = extreme_day_df.withColumn("rn", row_number().over(window)).filter(col("rn") == 1)
     extreme_day_info = extreme_events_max.select("event_type", "value", "date")
 
+    def format_date(d):
+        return str(d) if d else None
+
     hottest_day = extreme_day_info.filter(col("event_type") == "heatwave").first()
     if hottest_day:
         hottest_day_value = hottest_day["value"]
-        hottest_day_date = hottest_day["date"]
+        hottest_day_date = format_date(hottest_day["date"])
     else:
         hottest_day_value = None
         hottest_day_date = None
@@ -97,7 +101,7 @@ def get_overview(
     coldest_day = extreme_day_info.filter(col("event_type") == "coldwave").first()
     if coldest_day:
         coldest_day_value = coldest_day["value"]
-        coldest_day_date = coldest_day["date"]
+        coldest_day_date = format_date(coldest_day["date"])
     else:
         coldest_day_value = None
         coldest_day_date = None
@@ -105,7 +109,7 @@ def get_overview(
     heaviest_precip = extreme_day_info.filter(col("event_type") == "heavy_precip").first()
     if heaviest_precip:
         heaviest_precip_value = heaviest_precip["value"]
-        heaviest_precip_date = heaviest_precip["date"]
+        heaviest_precip_date = format_date(heaviest_precip["date"])
     else:
         heaviest_precip_value = None
         heaviest_precip_date = None
@@ -113,7 +117,7 @@ def get_overview(
     largest_snow = extreme_day_info.filter(col("event_type") == "heavy_snow").first()
     if largest_snow:
         largest_snow_value = largest_snow["value"]
-        largest_snow_date = largest_snow["date"]
+        largest_snow_date = format_date(largest_snow["date"])
     else:
         largest_snow_value = None
         largest_snow_date = None

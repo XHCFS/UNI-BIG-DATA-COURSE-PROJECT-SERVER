@@ -37,23 +37,26 @@ def get_extreme_events_data(
     }
 
 
-    totals_row = yearly_df.agg(
+    totals_result = yearly_df.agg(
         sum("heatwave_count").alias("heatwave_total"),
         sum("coldwave_count").alias("coldwave_total"),
         sum("heavy_precip_count").alias("heavy_precip_total"),
         sum("snowfall_count").alias("snowfall_total")
-    ).collect()[0]
+    ).first()
 
     total_counts = {
-        "heatwave_count": totals_row["heatwave_total"],
-        "coldwave_count": totals_row["coldwave_total"],
-        "heavy_precip_count": totals_row["heavy_precip_total"],
-        "snowfall_count": totals_row["snowfall_total"]
+        "heatwave_count": totals_result["heatwave_total"] if totals_result else None,
+        "coldwave_count": totals_result["coldwave_total"] if totals_result else None,
+        "heavy_precip_count": totals_result["heavy_precip_total"] if totals_result else None,
+        "snowfall_count": totals_result["snowfall_total"] if totals_result else None
     }
 
 
     # Values from RECENT_EXTREME_EVENT 
     # ====================================================================
+
+    def format_date(d):
+        return str(d) if d else None
 
     recent_events = {}
     for e in ["heatwave", "coldwave", "heavy_precip", "snowfall"]:
@@ -61,7 +64,7 @@ def get_extreme_events_data(
         most_recent_row = df.orderBy(col("date").desc()).limit(1).collect()
         if most_recent_row:
             row = most_recent_row[0]
-            recent_events[e] = {"date": row.date, "value": row.value}
+            recent_events[e] = {"date": format_date(row.date), "value": row.value}
         else:
             recent_events[e] = {"date": None, "value": None}
 

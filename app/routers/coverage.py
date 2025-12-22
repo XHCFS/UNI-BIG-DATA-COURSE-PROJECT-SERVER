@@ -23,11 +23,13 @@ def get_coverage_data(
     # ====================================================================
 
     # Summary
-    total_missing_days = coverage_df.select(
+    total_missing_result = coverage_df.select(
         (col("missing_tmin") + col("missing_tmax") + col("missing_precip") + col("missing_snow")).alias("total_missing")
-    ).groupBy().sum("total_missing").collect()[0][0]
+    ).groupBy().sum("total_missing").first()
+    total_missing_days = total_missing_result[0] if total_missing_result else None
 
-    missing_percentage = coverage_df.agg(avg("missing_percentage")).collect()[0][0]
+    missing_pct_result = coverage_df.agg(avg("missing_percentage")).first()
+    missing_percentage = missing_pct_result[0] if missing_pct_result else None
 
     stations_count = coverage_df.select("station_id").distinct().count()
 

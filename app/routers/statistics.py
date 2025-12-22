@@ -48,7 +48,7 @@ def get_statistics(
         max("total_precip").alias("max_precip"),
         min("avg_snow_depth").alias("min_snow"),
         max("avg_snow_depth").alias("max_snow")
-    ).collect()[0]
+    ).first()
 
 
     # Values from DISTRIBUTION_TABLE
@@ -65,8 +65,8 @@ def get_statistics(
 
     # ====================================================================
 
-    return {
-        "stat_indicators": {
+    if stats_row:
+        stat_indicators = {
             "mean": {
                 "mean_temp_min": stats_row["mean_tmin"],
                 "mean_temp_max": stats_row["mean_tmax"],
@@ -91,7 +91,12 @@ def get_statistics(
                 "range_precip": {"start": stats_row["min_precip"], "end": stats_row["max_precip"]},
                 "range_snow": {"start": stats_row["min_snow"], "end": stats_row["max_snow"]}
             }, 
-        },
+        }
+    else:
+        stat_indicators = None
+
+    return {
+        "stat_indicators": stat_indicators,
         "data_points": {
             "max_temp": max_temp_dist,
             "min_temp": min_temp_dist,

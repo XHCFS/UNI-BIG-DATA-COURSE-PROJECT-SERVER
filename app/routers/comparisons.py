@@ -36,25 +36,33 @@ def get_comparisons_data(
             min("min_temp").alias("min_temp"),
             max("max_temp").alias("max_temp"),
             sum("total_precip").alias("total_precip")
-        ).collect()[0]
+        ).first()
 
         #Values from YEARLY_EXTREME_EVENTS 
         #=====================================================================
-        total_extremes = extreme_country.agg(
+        extremes_result = extreme_country.agg(
             (sum("heatwave_count") + 
              sum("coldwave_count") + 
              sum("heavy_precip_count") + 
              sum("snowfall_count")).alias("total_extremes")
-        ).collect()[0]["total_extremes"]
+        ).first()
+        total_extremes = extremes_result["total_extremes"] if extremes_result else None
 
-        temp_range = {"start": agg["min_temp"], "end": agg["max_temp"]}
-
-        return {
-            "avg_temp": agg["avg_temp"],
-            "temp_range": temp_range,
-            "total_precip": agg["total_precip"],
-            "extreme_events": total_extremes
-        }
+        if agg:
+            temp_range = {"start": agg["min_temp"], "end": agg["max_temp"]}
+            return {
+                "avg_temp": agg["avg_temp"],
+                "temp_range": temp_range,
+                "total_precip": agg["total_precip"],
+                "extreme_events": total_extremes
+            }
+        else:
+            return {
+                "avg_temp": None,
+                "temp_range": {"start": None, "end": None},
+                "total_precip": None,
+                "extreme_events": total_extremes
+            }
 
     summary_A = get_country_summary(yearly_df, extreme_df, country_A_prefix)
     summary_B = get_country_summary(yearly_df, extreme_df, country_B_prefix)
@@ -62,9 +70,14 @@ def get_comparisons_data(
     # Difference
     # ====================================================================
 
-    diff_temp = summary_A["avg_temp"] - summary_B["avg_temp"]
-    diff_precip = summary_A["total_precip"] - summary_B["total_precip"]
-    diff_extreme = summary_A["extreme_events"] - summary_B["extreme_events"]
+    def safe_diff(a, b):
+        if a is not None and b is not None:
+            return a - b
+        return None
+
+    diff_temp = safe_diff(summary_A["avg_temp"], summary_B["avg_temp"])
+    diff_precip = safe_diff(summary_A["total_precip"], summary_B["total_precip"])
+    diff_extreme = safe_diff(summary_A["extreme_events"], summary_B["extreme_events"])
 
 
     # Data Points
