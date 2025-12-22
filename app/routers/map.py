@@ -20,7 +20,7 @@ def get_map_data(
         (col("year") >= start_year) & (col("year") <= end_year)
     )
 
-    stations_df = spark.read.parquet(STATIONS_TABLE_PATH).select(
+    stations_df = spark.read.csv(STATIONS_TABLE_PATH, header=True, inferSchema=True).select(
         col("id").alias("station_id"),
         "name",
         "latitude",

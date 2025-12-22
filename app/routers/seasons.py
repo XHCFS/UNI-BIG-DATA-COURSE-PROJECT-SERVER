@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
-from pyspark.sql.functions import col, avg, sum
+from pyspark.sql.functions import col, avg, sum as _sum
 
 router = APIRouter(prefix="/seasons", tags=["seasons"])
 
@@ -25,7 +25,7 @@ def get_seasons_data(
     monthly_agg_df = df.groupBy("month").agg(
         avg("avg_tmin").alias("avg_tmin"),
         avg("avg_tmax").alias("avg_tmax"),
-        sum("total_precip").alias("total_precip"),
+        _sum("total_precip").alias("total_precip"),
         avg("avg_snow_depth").alias("avg_snow_depth")
     ).orderBy("month")
 
