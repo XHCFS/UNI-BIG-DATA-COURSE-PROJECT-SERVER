@@ -1,18 +1,11 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
-from datetime import date
+from pyspark.sql.functions import col, sum
 
 router = APIRouter(prefix="/extreme_events", tags=["extreme_events"])
 
-MONTHLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
-YEARLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/yearly_aggregates/"
-
 YEARLY_EXTREME_COUNTS_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_aggregates/"
-EXTREME_DAY_YEARLY_SUMMARY_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_summary/"
 RECENT_EXTREME_EVENT_PATH = "hdfs:///ghcnd/agg_tables/recent_extreme_events/"
-
-COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
-DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
 @router.get("/extreme_events")
@@ -21,100 +14,78 @@ def get_extreme_events_data(
     start_year: int = Query(...),
     end_year: int = Query(...)
 ):
-    # TODO:
-    # Load aggregated tables needed and filter by station_id and year
-    # Use Spark to process and calculate the values need for dashboard page
+    # Load aggregated tables and filter by station_id and year
+    yearly_df  = spark.read.parquet(YEARLY_EXTREME_COUNTS_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
 
-    # ====================================================================
-    # Using hardcoded values for now
-    # ====================================================================
-
-    # NOTE: calculate the average values across all stations in the selected country
+    recent_df = spark.read.parquet(RECENT_EXTREME_EVENT_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
 
     # Values from YEARLY_EXTREME_COUNTS 
     # ====================================================================
 
-    heatwave_count = 60
-    coldwave_count = 50
-    heavy_precip_count = 20
-    heavy_snow_count = 10
+    extreme_types = ["heatwave_count", "coldwave_count", "heavy_precip_count", "snowfall_count"]
 
-    heatwave_yearly_count = []
-    example = {
-        "year": 1865, 
-        "count": 10 
+    yearly_counts_df = yearly_df.groupBy("year").sum(*extreme_types).orderBy("year")
+    yearly_counts = {
+        e: [{"year": row.year, "count": row[f"sum({e})"]} for row in yearly_counts_df.collect()]
+        for e in extreme_types
     }
-    heatwave_yearly_count.append(example)
 
-    coldwave_yearly_count = []
-    example = {
-        "year": 1865, 
-        "count": 6
+
+    totals_row = yearly_df.agg(
+        sum("heatwave_count").alias("heatwave_total"),
+        sum("coldwave_count").alias("coldwave_total"),
+        sum("heavy_precip_count").alias("heavy_precip_total"),
+        sum("snowfall_count").alias("snowfall_total")
+    ).collect()[0]
+
+    total_counts = {
+        "heatwave_count": totals_row["heatwave_total"],
+        "coldwave_count": totals_row["coldwave_total"],
+        "heavy_precip_count": totals_row["heavy_precip_total"],
+        "snowfall_count": totals_row["snowfall_total"]
     }
-    coldwave_yearly_count.append(example)
 
-    heavy_precip_yearly_count = []
-    example = {
-        "year": 1865, 
-        "count": 4
-    }
-    heavy_precip_yearly_count.append(example)
 
-    heavy_snow_yearly_count = []
-    example = {
-        "year": 1865, 
-        "count": 2
-    }
-    heavy_snow_yearly_count.append(example)
-
-    # Values from RECENT_EXTREME_EVENT
+    # Values from RECENT_EXTREME_EVENT 
     # ====================================================================
 
-    recent_heatwave_value = 38
-    recent_heatwave_date = date(2016, 8, 2).isoformat()
-
-    recent_coldwave_value = 10
-    recent_coldwave_date = date(2001, 12, 20).isoformat()
-
-    recent_heavy_precip_value = 200
-    recent_heavy_precip_date = date(2010, 4, 8).isoformat()
-
-    recent_heavy_snow_value = 20
-    recent_heavy_snow_date = date(2011, 1, 25).isoformat()
+    recent_events = {}
+    for e in ["heatwave", "coldwave", "heavy_precip", "snowfall"]:
+        df = recent_df.filter(col("event_type") == e)
+        most_recent_row = df.orderBy(col("date").desc()).limit(1).collect()
+        if most_recent_row:
+            row = most_recent_row[0]
+            recent_events[e] = {"date": row.date, "value": row.value}
+        else:
+            recent_events[e] = {"date": None, "value": None}
 
     # ====================================================================
 
     return {
         "heatwave": {
-            "total_count": heatwave_count,
-            "yearly_counts": heatwave_yearly_count,
-            "most_recent": {
-                "date": recent_heatwave_date,
-                "value": recent_heatwave_value,
-            }
+            "total_count": total_counts["heatwave_count"],
+            "yearly_counts": yearly_counts["heatwave_count"],
+            "most_recent": recent_events["heatwave"]
         },
         "coldwave": {
-            "total_count": coldwave_count,
-            "yearly_counts": coldwave_yearly_count,
-            "most_recent": {
-                "date": recent_coldwave_date,
-                "value": recent_coldwave_value,
-            }
+            "total_count": total_counts["coldwave_count"],
+            "yearly_counts": yearly_counts["coldwave_count"],
+            "most_recent": recent_events["coldwave"]
         },
         "heavy_precipitation": {
-            "total_count": heavy_precip_count,
-            "yearly_counts": heavy_precip_yearly_count,
-            "most_recent": {
-                "date": recent_heavy_precip_date,
-                "value": recent_heavy_precip_value,
-            }
+            "total_count": total_counts["heavy_precip_count"],
+            "yearly_counts": yearly_counts["heavy_precip_count"],
+            "most_recent": recent_events["heavy_precip"]
         },
         "heavy_snowfall": {
-            "total_count": heavy_snow_count,
-            "yearly_counts": heavy_snow_yearly_count,
-            "most_recent": {
-                "date": recent_heavy_snow_date,
-                "value": recent_heavy_snow_value,
-            }
+            "total_count": total_counts["snowfall_count"],
+            "yearly_counts": yearly_counts["snowfall_count"],
+            "most_recent": recent_events["snowfall"]
         }
     }

@@ -1,16 +1,11 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
+from pyspark.sql.functions import col, avg, sum
 
 router = APIRouter(prefix="/map", tags=["map"])
 
-MONTHLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
 YEARLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/yearly_aggregates/"
-
-YEARLY_EXTREME_COUNTS_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_aggregates/"
-EXTREME_DAY_YEARLY_SUMMARY_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_summary/"
-
-COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
-DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
+STATIONS_TABLE_PATH = "hdfs:///ghcnd/stations/"
 
 
 @router.get("/map")
@@ -19,35 +14,33 @@ def get_map_data(
     start_year: int = Query(...),
     end_year: int = Query(...)
 ):
-    # TODO:
-    # Load aggregated tables needed and filter by station_id and year
-    # Use Spark to process and calculate the values need for dashboard page
+    # Load aggregated tables and filter by station_id and year
+    yearly_df = spark.read.parquet(YEARLY_AGG_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
 
+    stations_df = spark.read.parquet(STATIONS_TABLE_PATH).select(
+        col("id").alias("station_id"),
+        "name",
+        "latitude",
+        "longitude",
+        "elevation",
+    ).filter(col("station_id").startswith(country_prefix))
+
+    # Values from YEARLY_AGG 
     # ====================================================================
-    # Using hardcoded values for now
-    # ====================================================================
-    stations_data = []
+    station_stat_df = yearly_df.groupBy("station_id").agg(
+        avg("avg_tmin").alias("avg_tmin"),
+        avg("avg_tmax").alias("avg_tmax"),
+        sum("total_precip").alias("total_precip"),
+        avg("avg_snow_depth").alias("avg_snow_depth")
+    )
 
-    station_example = {
-        "station_id": "ACW00011647",
+    joined_df = station_stat_df.join(stations_df, on="station_id", how="left")
+    joined_df = joined_df.withColumn("avg_temp", (col("avg_tmin") + col("avg_tmax")) / 2)
 
-    # Values from ghcnd_stations file
-    # ====================================================================
-        "name": "ST JOHNS",
-        "latitude": 17.1333,
-        "longitude": -61.7833,
-        "elevation": 19.2,
-
-    # Values from YEARLY_AGG
-    # ====================================================================
-        "avg_temp": 26,
-        "avg_tmin": 12,
-        "avg_tmax": 40,
-        "total_precip": 860,
-        "avg_snow_depth": 127,
-    }
-
-    stations_data.append(station_example)
+    stations_data = [row.asDict() for row in joined_df.collect()]
 
     # ====================================================================
 
