@@ -1,17 +1,10 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
+from pyspark.sql.functions import col, avg, sum , min, max
 
 router = APIRouter(prefix="/coverage", tags=["coverage"])
 
-MONTHLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
-YEARLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/yearly_aggregates/"
-
-YEARLY_EXTREME_COUNTS_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_aggregates/"
-EXTREME_DAY_YEARLY_SUMMARY_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_summary/"
-RECENT_EXTREME_EVENT_PATH = "hdfs:///ghcnd/agg_tables/recent_extreme_events/"
-
 COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
-DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
 @router.get("/")
@@ -20,40 +13,59 @@ def get_coverage_data(
     start_year: int = Query(...),
     end_year: int = Query(...)
 ):
-    # TODO:
-    # Load aggregated tables needed and filter by station_id and year
-    # Use Spark to process and calculate the values need for dashboard page
-
-    # ====================================================================
-    # Using hardcoded values for now
-    # ====================================================================
-
+    # Load aggregated tables and filter by station_id and year
+    coverage_df = spark.read.parquet(COVERAGE_TABLE_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
 
     # Values from COVERAGE_TABLE
     # ====================================================================
 
-    total_missing_days = 250
-    missing_percentage = 10
-    stations_count = 100
+    # Summary
+    total_missing_days = coverage_df.select(
+        (col("missing_tmin") + col("missing_tmax") + col("missing_precip") + col("missing_snow")).alias("total_missing")
+    ).groupBy().sum("total_missing").collect()[0][0]
 
-    coverage_per_station = []
-    example = {
-        "station_id": "ACW00011647",
-        "coverage_percentage" : 88,
-        "missing_days": 360,
-        "start_year": 1865,
-        "end_year": 2001,
-    }
-    coverage_per_station.append(example)
+    missing_percentage = coverage_df.agg(avg("missing_percentage")).collect()[0][0]
 
-    coverage_per_year = []
-    example = {
-        "year" : 2000,
-        "missing_temp": 60,     # sume min and max temperature
-        "missing_precip": 20,
-        "missing_snow": 150,
-    }
-    coverage_per_year.append(example)
+    stations_count = coverage_df.select("station_id").distinct().count()
+
+    # coverage_per_station
+    coverage_per_station = coverage_df.groupBy("station_id").agg(
+        avg("missing_percentage").alias("missing_percentage"),
+        sum(col("missing_tmin") + col("missing_tmax") + col("missing_precip") + col("missing_snow")).alias("missing_days"),
+        min("year").alias("start_year"),
+        max("year").alias("end_year")
+    ).collect()
+
+    coverage_per_station_list = [
+        {
+            "station_id": row["station_id"],
+            "coverage_percentage": 100 - row["missing_percentage"],
+            "missing_days": row["missing_days"],
+            "start_year": row["start_year"],
+            "end_year": row["end_year"]
+        }
+        for row in coverage_per_station
+    ]
+
+    #coverage_per_year
+    coverage_per_year = coverage_df.groupBy("year").agg(
+        (sum("missing_tmin") + sum("missing_tmax")).alias("missing_temp"),
+        sum("missing_precip").alias("missing_precip"),
+        sum("missing_snow").alias("missing_snow")
+    ).orderBy("year").collect()
+
+    coverage_per_year_list = [
+        {
+            "year": row["year"],
+            "missing_temp": row["missing_temp"],
+            "missing_precip": row["missing_precip"],
+            "missing_snow": row["missing_snow"]
+        }
+        for row in coverage_per_year
+    ]
 
     # ====================================================================
 
@@ -63,6 +75,6 @@ def get_coverage_data(
             "missing_percentage": missing_percentage,
             "stations_count": stations_count,
         },
-        "coverage_per_station": coverage_per_station,
-        "coverage_per_year": coverage_per_year,
+        "coverage_per_station": coverage_per_station_list,
+        "coverage_per_year": coverage_per_year_list
     }

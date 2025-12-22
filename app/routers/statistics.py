@@ -1,15 +1,10 @@
 from fastapi import APIRouter, Query
 from app.spark import spark
+from pyspark.sql.functions import col, avg, stddev, skewness, min, max, count, expr
 
 router = APIRouter(prefix="/statistics", tags=["statistics"])
 
 MONTHLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/monthly_aggregates/"
-YEARLY_AGG_PATH = "hdfs:///ghcnd/agg_tables/yearly_aggregates/"
-
-YEARLY_EXTREME_COUNTS_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_aggregates/"
-EXTREME_DAY_YEARLY_SUMMARY_PATH = "hdfs:///ghcnd/agg_tables/extreme_events_yearly_summary/"
-
-COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
 DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
@@ -19,125 +14,88 @@ def get_statistics(
     start_year: int = Query(...),
     end_year: int = Query(...)
 ):
-    # TODO:
-    # Load aggregated tables needed and filter by station_id and year
-    # Use Spark to process and calculate the values need for dashboard page
+    # Load aggregated tables and filter by station_id and year
+    monthly_df = spark.read.parquet(MONTHLY_AGG_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
+    dist_df = spark.read.parquet(DISTRIBUTION_TABLE_PATH).filter(
+        (col("station_id").startswith(country_prefix)) &
+        (col("year") >= start_year) & (col("year") <= end_year)
+    )
 
-    # ====================================================================
-    # Using hardcoded values for now
-    # ====================================================================
-   
-    # Period length determine aggregation level
-
-
-
-    #============================================================
     # Values from MONTHLY_AGG
-    #============================================================
+    # ====================================================================
     # Getting Statistical Indicators 
-    mean_temp = 20
-    mean_percip = 100
-    mean_snow = 15
-    median_temp = 20
-    median_percip = 100
-    median_snow = 15
-    std_temp = 20
-    std_percip = 100
-    std_snow = 15
-    skew_temp = 20
-    skew_percip = 100
-    skew_snow = 15
-    range_temp = {"start": 5, "end": 10}
-    range_percip = {"start": 5, "end": 10}
-    range_snow = {"start": 5, "end": 10}
+    stats_row = monthly_df.agg(
+        avg("avg_tmin").alias("mean_tmin"),
+        avg("avg_tmax").alias("mean_tmax"),
+        avg("total_precip").alias("mean_precip"),
+        avg("avg_snow_depth").alias("mean_snow"),
+        stddev("avg_tmin").alias("std_tmin"),
+        stddev("avg_tmax").alias("std_tmax"),
+        stddev("total_precip").alias("std_precip"),
+        stddev("avg_snow_depth").alias("std_snow"),
+        skewness("avg_tmin").alias("skew_tmin"),
+        skewness("avg_tmax").alias("skew_tmax"),
+        skewness("total_precip").alias("skew_precip"),
+        skewness("avg_snow_depth").alias("skew_snow"),
+        min("avg_tmin").alias("min_tmin"),
+        max("avg_tmin").alias("max_tmin"),
+        min("avg_tmax").alias("min_tmax"),
+        max("avg_tmax").alias("max_tmax"),
+        min("total_precip").alias("min_precip"),
+        max("total_precip").alias("max_precip"),
+        min("avg_snow_depth").alias("min_snow"),
+        max("avg_snow_depth").alias("max_snow")
+    ).collect()[0]
 
 
-    # Values from Distribution Table
-    #=================================================
-    #Maximam Temp Graph
-    max_temp = []
+    # Values from DISTRIBUTION_TABLE
+    # ====================================================================
 
-    max_temp_point_example = {
-        "start": 10,
-        "end": 20,
-        "count": 50
-    }
+    def get_distribution(df, column):
+        return [{"start": row["bin_min"], "end": row["bin_max"], "count": row["count"]} 
+            for row in df.filter(col("variable") == column).collect()]
 
-    max_temp.append(max_temp_point_example)
+    max_temp_dist = get_distribution(dist_df, "max_temp")
+    min_temp_dist = get_distribution(dist_df, "min_temp")
+    precip_dist = get_distribution(dist_df, "precipitation")
+    snow_depth_dist = get_distribution(dist_df, "snow_depth")
 
-    #Minimum Temp Graph
-    min_temp = []
-
-    min_temp_point_example = {
-        "start": 10,
-        "end": 20,
-        "count": 50
-    }
-
-    min_temp.append(min_temp_point_example)
-
-    #Perciptation Graph
-    percip = []
-
-    percip_point_example = {
-        "start": 10,
-        "end": 20,
-        "count": 50
-    }
-
-    percip.append(percip_point_example)
-
-    #Snow Depth Graph
-    snow_depth = []
-
-    snow_depth_point_example = {
-        "start": 10,
-        "end": 20,
-        "count": 50
-    }
-
-    snow_depth.append(snow_depth_point_example)
-
-    
     # ====================================================================
 
     return {
         "stat_indicators": {
-            "mean":{
-                "mean_temp": mean_temp,
-                "mean_percip": mean_percip,
-                "mean_snow": mean_snow
+            "mean": {
+                "mean_temp_min": stats_row["mean_tmin"],
+                "mean_temp_max": stats_row["mean_tmax"],
+                "mean_precip": stats_row["mean_precip"],
+                "mean_snow": stats_row["mean_snow"]
             },
-
-            "median":{
-                "median_temp": median_temp,
-                "median_percip": median_percip,
-                "median_snow": median_snow
+            "std": {
+                "std_temp_min": stats_row["std_tmin"],
+                "std_temp_max": stats_row["std_tmax"],
+                "std_precip": stats_row["std_precip"],
+                "std_snow": stats_row["std_snow"]
             },
-
-            "std":{
-                "std_temp": std_temp,
-                "std_percip": std_percip,
-                "std_snow": std_snow
+            "skewness": {
+                "skew_temp_min": stats_row["skew_tmin"],
+                "skew_temp_max": stats_row["skew_tmax"],
+                "skew_precip": stats_row["skew_precip"],
+                "skew_snow": stats_row["skew_snow"]
             },
-
-            "skewness":{
-                "skew_temp": skew_temp,
-                "skew_percip": skew_percip,
-                "skew_snow": skew_snow
-            },
-
-            "range":{
-              "range_temp": range_temp,
-              "range_percip": range_percip,
-              "range_snow": range_snow
-            },
-
-            "data_points": {
-                "max_temp": max_temp,
-                "min_temp": min_temp,
-                "precipitation": percip,
-                "snow_depth": snow_depth
-            }
+            "range": {
+                "range_temp_min": {"start": stats_row["min_tmin"], "end": stats_row["max_tmin"]},
+                "range_temp_max": {"start": stats_row["min_tmax"], "end": stats_row["max_tmax"]},
+                "range_precip": {"start": stats_row["min_precip"], "end": stats_row["max_precip"]},
+                "range_snow": {"start": stats_row["min_snow"], "end": stats_row["max_snow"]}
+            }, 
+        },
+        "data_points": {
+            "max_temp": max_temp_dist,
+            "min_temp": min_temp_dist,
+            "precipitation": precip_dist,
+            "snow_depth": snow_depth_dist
         }
     }
