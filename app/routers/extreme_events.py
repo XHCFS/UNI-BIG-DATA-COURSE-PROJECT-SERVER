@@ -15,7 +15,7 @@ COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
 DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
-@router.get("/extreme_events")
+@router.get("/")
 def get_extreme_events_data(
     country_prefix: str = Query(...),
     start_year: int = Query(...),

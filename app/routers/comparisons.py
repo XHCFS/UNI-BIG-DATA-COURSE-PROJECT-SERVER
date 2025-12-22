@@ -13,7 +13,7 @@ COVERAGE_TABLE_PATH = "hdfs:///ghcnd/agg_tables/coverage/"
 DISTRIBUTION_TABLE_PATH = "hdfs:///ghcnd/agg_tables/distribution/"
 
 
-@router.get("/comparisons")
+@router.get("/")
 def get_comparisons_data(
     country_A_prefix: str = Query(...),
     country_B_prefix: str = Query(...),
