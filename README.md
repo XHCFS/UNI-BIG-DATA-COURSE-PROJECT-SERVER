@@ -47,14 +47,14 @@ The API assumes all aggregated tables under `/ghcnd/agg_tables/` already exist i
 
 ## Documentation
 
-Complete documentation is available in the [`docs/`](docs/) directory:
+Complete documentation is available:
 
-- **[Setup and Environment](docs/setup.md)** – Prerequisites, installation steps, HDFS configuration, Python environment setup, and building aggregated tables.
-- **[Running the API](docs/running.md)** – Manual execution instructions and systemd service configuration for production deployment.
-- **[API Documentation](docs/api.md)** – Complete reference for all REST endpoints including request parameters, response formats, and examples.
-- **[Operations and Maintenance](docs/operations.md)** – Operational notes, troubleshooting, and maintenance procedures for the API server.
-
-For GitHub Pages documentation, see [`docs/index.html`](docs/index.html).
+- **Online**: [GitHub Pages Documentation](https://xhcfs.github.io/UNI-BIG-DATA-COURSE-PROJECT-SERVER/)
+- **Local files** in the [`docs/`](docs/) directory:
+  - [Setup and Environment](docs/setup.md) – Prerequisites, installation steps, HDFS configuration, Python environment setup, and building aggregated tables.
+  - [Running the API](docs/running.md) – Manual execution instructions and systemd service configuration for production deployment.
+  - [API Documentation](docs/api.md) – Complete reference for all REST endpoints including request parameters, response formats, and examples.
+  - [Operations and Maintenance](docs/operations.md) – Operational notes, troubleshooting, and maintenance procedures for the API server.
 
 ---
 
