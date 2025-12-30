@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Running the API - GHCND API Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="index.html">GHCND Big Data API Server</a></h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="setup.html">Setup</a>
+            <a href="running.html">Running</a>
+            <a href="api.html">API</a>
+            <a href="operations.html">Operations</a>
+        </nav>
+    </header>
+
+    <h1>Running the API</h1>
+
+    <p>This document explains how to run the FastAPI + Spark service, both manually and as a <code>systemd</code> service.</p>
+
+    <h2>Manual Run (Development)</h2>
+
+    <p>From the project root, with the Python environment activated:</p>
+
+    <pre><code>uvicorn app.main:app --host 0.0.0.0 --port 8000</code></pre>
+
+    <p>The API will be available at:</p>
+
+    <ul>
+        <li>Swagger UI: <code>http://&lt;server&gt;:8000/docs</code></li>
+        <li>ReDoc: <code>http://&lt;server&gt;:8000/redoc</code></li>
+    </ul>
+
+    <h2>Production Run via systemd</h2>
+
+    <p>You can manage the API as a long-running service using <code>systemd</code>.</p>
+
+    <h3>Unit File</h3>
+
+    <p>Create <code>/etc/systemd/system/ghcnd-api.service</code>:</p>
+
+    <pre><code>[Unit]
+Description=GHCND FastAPI + Spark API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/UNI-BIG-DATA-COURSE-PROJECT-SERVER
+
+# Load pyenv environment and start Uvicorn
+ExecStart=/bin/bash -c 'source /opt/pyenv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000'
+
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+    <p>Adjust:</p>
+
+    <ul>
+        <li><code>User</code> – the account that should run the service</li>
+        <li><code>WorkingDirectory</code> – project root</li>
+        <li><code>source /opt/pyenv/bin/activate</code> – activation command for your Python environment</li>
+    </ul>
+
+    <h3>Enable and Start</h3>
+
+    <pre><code>sudo systemctl daemon-reload
+sudo systemctl enable ghcnd-api
+sudo systemctl start ghcnd-api
+sudo systemctl status ghcnd-api</code></pre>
+
+    <p>Tail logs:</p>
+
+    <pre><code>journalctl -u ghcnd-api -f</code></pre>
+
+    <h2>Deployment Helper Scripts</h2>
+
+    <p>Two shell scripts are provided to streamline deployment:</p>
+
+    <ul>
+        <li><code>deploy.sh</code>: Deploys a given Git branch to a remote server via SSH, updates the repository, and restarts the <code>ghcnd-api</code> service.</li>
+        <li><code>local_deploy.sh</code>: Performs the same steps on the local machine for a specified branch (default <code>main</code>).</li>
+    </ul>
+
+    <p>Both scripts assume:</p>
+
+    <ul>
+        <li>The repository lives at <code>/root/UNI-BIG-DATA-COURSE-PROJECT-SERVER</code>.</li>
+        <li>The <code>ghcnd-api</code> systemd service is configured and enabled.</li>
+    </ul>
+
+    <footer>
+        <p>GHCND Big Data API Server Documentation</p>
+    </footer>
+</body>
+</html>
+

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup and Environment - GHCND API Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="index.html">GHCND Big Data API Server</a></h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="setup.html">Setup</a>
+            <a href="running.html">Running</a>
+            <a href="api.html">API</a>
+            <a href="operations.html">Operations</a>
+        </nav>
+    </header>
+
+    <h1>Setup and Environment</h1>
+
+    <p>This document describes how to prepare the environment, ingest the NOAA GHCND dataset, and build the aggregated tables used by the API.</p>
+
+    <h2>Dataset</h2>
+
+    <p>The backend is built on top of the <strong>NOAA Global Historical Climatology Network – Daily (GHCND)</strong> dataset:</p>
+
+    <ul>
+        <li>Kaggle: <a href="https://www.kaggle.com/datasets/noaa/noaa-global-historical-climatology-network-daily/data" target="_blank">https://www.kaggle.com/datasets/noaa/noaa-global-historical-climatology-network-daily/data</a></li>
+    </ul>
+
+    <p>Download the dataset from Kaggle and unzip all files locally. You will need:</p>
+
+    <ul>
+        <li>Daily observation files (GHCND daily data)</li>
+        <li>Station metadata file (for example <code>ghcnd-stations.csv</code>)</li>
+    </ul>
+
+    <h2>HDFS Layout</h2>
+
+    <p>Upload the data into HDFS with at least the following layout:</p>
+
+    <ul>
+        <li>Raw data:
+            <ul>
+                <li><code>/ghcnd/*.csv</code> – daily records</li>
+                <li><code>/ghcnd/stations/ghcnd-stations.csv</code> – station metadata</li>
+            </ul>
+        </li>
+        <li>Aggregated Parquet tables (created by Spark jobs):
+            <ul>
+                <li><code>/ghcnd/agg_tables/monthly_aggregates/</code></li>
+                <li><code>/ghcnd/agg_tables/yearly_aggregates/</code></li>
+                <li><code>/ghcnd/agg_tables/coverage/</code></li>
+                <li><code>/ghcnd/agg_tables/distribution/</code></li>
+                <li><code>/ghcnd/agg_tables/extreme_events/</code></li>
+                <li><code>/ghcnd/agg_tables/extreme_events_yearly_aggregates/</code></li>
+                <li><code>/ghcnd/agg_tables/extreme_events_yearly_summary/</code></li>
+                <li><code>/ghcnd/agg_tables/recent_extreme_events/</code></li>
+            </ul>
+        </li>
+    </ul>
+
+    <p>Example commands (adapt paths as needed):</p>
+
+    <pre><code>hdfs dfs -mkdir -p /ghcnd
+hdfs dfs -mkdir -p /ghcnd/stations
+
+hdfs dfs -put /data/ghcnd/daily/*.csv /ghcnd/
+hdfs dfs -put /data/ghcnd/ghcnd-stations.csv /ghcnd/stations/</code></pre>
+
+    <h2>Prerequisites</h2>
+
+    <ul>
+        <li>Linux server</li>
+        <li><strong>Java</strong>: OpenJDK 17</li>
+        <li><strong>Hadoop</strong>: HDFS configured with a default filesystem, for example:</li>
+    </ul>
+
+    <pre><code>&lt;!-- core-site.xml --&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+    &lt;name&gt;fs.defaultFS&lt;/name&gt;
+    &lt;value&gt;hdfs://localhost:9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;</code></pre>
+
+    <ul>
+        <li><strong>Spark</strong>: Apache Spark with PySpark available</li>
+        <li><strong>Python</strong>: Version compatible with FastAPI and PySpark (for example 3.10+)</li>
+        <li>Python packages (installed into a virtual environment or pyenv environment):
+            <ul>
+                <li><code>fastapi</code></li>
+                <li><code>uvicorn</code></li>
+                <li><code>pyspark</code></li>
+                <li><code>pandas</code></li>
+            </ul>
+        </li>
+    </ul>
+
+    <h2>Python Environment</h2>
+
+    <p>Using <code>pyenv</code> as an example:</p>
+
+    <pre><code>cd /root/UNI-BIG-DATA-COURSE-PROJECT-SERVER
+
+pyenv install 3.13.0
+pyenv virtualenv 3.13.0 ghcnd-api
+pyenv local ghcnd-api
+
+pip install fastapi uvicorn pyspark pandas</code></pre>
+
+    <p>Adjust versions and package list as required.</p>
+
+    <h2>Building Aggregated Tables</h2>
+
+    <p>From the project root:</p>
+
+    <pre><code>cd /root/UNI-BIG-DATA-COURSE-PROJECT-SERVER
+
+# Preferred: use the helper script to run Spark jobs with consistent settings
+scripts/run_spark.sh scripts/agg_tables/agg_table_monthly_aggregates.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_yearly_aggregates.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_coverage.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_distribution.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_extreme_events.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_yearly_extreme_events.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_extreme_events_yearly_summary.py
+scripts/run_spark.sh scripts/agg_tables/agg_table_recent_extreme_events.py</code></pre>
+
+    <p>The <code>scripts/run_spark.sh</code> wrapper configures Spark with appropriate memory limits, temporary directories, and Hadoop configuration, and writes a log file for each job (for example <code>agg_table_yearly_aggregates_report.txt</code>).</p>
+
+    <p>Verify the resulting tables:</p>
+
+    <pre><code>hdfs dfs -ls /ghcnd/agg_tables/</code></pre>
+
+    <p>You should see all expected tables under <code>/ghcnd/agg_tables/</code>.</p>
+
+    <h2>Spark Session Configuration</h2>
+
+    <p>The shared <code>SparkSession</code> is configured in <code>app/spark.py</code>:</p>
+
+    <pre><code>from pyspark.sql import SparkSession
+
+HDFS_NAMENODE = "hdfs://localhost:9000"
+
+spark = (
+    SparkSession.builder
+    .appName("GHCND_API")
+    .config("spark.hadoop.fs.defaultFS", HDFS_NAMENODE)
+    .getOrCreate()
+)</code></pre>
+
+    <p>If your HDFS namenode is different, update <code>HDFS_NAMENODE</code> accordingly.</p>
+
+    <footer>
+        <p>GHCND Big Data API Server Documentation</p>
+    </footer>
+</body>
+</html>
+

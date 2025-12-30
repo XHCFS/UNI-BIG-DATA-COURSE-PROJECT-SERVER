@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - GHCND API Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="index.html">GHCND Big Data API Server</a></h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="setup.html">Setup</a>
+            <a href="running.html">Running</a>
+            <a href="api.html">API</a>
+            <a href="operations.html">Operations</a>
+        </nav>
+    </header>
+
+    <h1>API Documentation</h1>
+
+    <p>All endpoints are RESTful and return JSON. Query parameters are required unless otherwise noted. All temperature values are in Celsius, precipitation in millimeters, and snow depth in centimeters.</p>
+
+    <p>Base URL:</p>
+
+    <pre><code>http://&lt;server&gt;:8000</code></pre>
+
+    <hr>
+
+    <h2>Test Endpoint</h2>
+
+    <p><strong>GET</strong> <code>/test</code></p>
+
+    <p>Basic connectivity check. No parameters required.</p>
+
+    <p><strong>Response:</strong></p>
+
+    <pre><code>"HI :>"</code></pre>
+
+    <hr>
+
+    <h2>Overview</h2>
+
+    <p><strong>GET</strong> <code>/overview/</code></p>
+
+    <p>Returns a climate overview for a country over a specified time period, including average temperatures, precipitation, snow depth, extreme event records, and coverage metrics.</p>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required): Two-letter country code prefix (for example <code>US</code>, <code>FR</code>, <code>CA</code>)</li>
+        <li><code>start_year</code> (integer, required): Start year</li>
+        <li><code>end_year</code> (integer, required): End year (inclusive)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/overview/?country_prefix=US&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "temperature": {
+    "avg_min_temp": 12.5,
+    "avg_max_temp": 25.3
+  },
+  "total_precipitation": 860.2,
+  "avg_snow_depth": 15.7,
+  "extreme_events": {
+    "coldest_day": {
+      "temperature": -15.0,
+      "date": "2001-12-20"
+    },
+    "hottest_day": {
+      "temperature": 42.5,
+      "date": "2016-08-02"
+    },
+    "heaviest_day": {
+      "amount": 250.0,
+      "date": "2010-04-08"
+    },
+    "largest_snowfall": {
+      "depth": 89.0,
+      "date": "1856-01-25"
+    }
+  },
+  "extreme_events_count": 51,
+  "coverage": 90.5
+}</code></pre>
+
+    <p><strong>Field Summary:</strong></p>
+
+    <ul>
+        <li><code>temperature.avg_min_temp</code>, <code>temperature.avg_max_temp</code>: Average min/max temperatures (Celsius)</li>
+        <li><code>total_precipitation</code>: Total precipitation over the period (millimeters)</li>
+        <li><code>avg_snow_depth</code>: Average snow depth (centimeters)</li>
+        <li><code>extreme_events.*</code>: Record events and dates (may be <code>null</code> if no data)</li>
+        <li><code>extreme_events_count</code>: Total number of extreme events in the period</li>
+        <li><code>coverage</code>: Average data coverage percentage</li>
+    </ul>
+
+    <hr>
+
+    <h2>Map</h2>
+
+    <p><strong>GET</strong> <code>/map/</code></p>
+
+    <p>Per-station climate statistics and geographic coordinates for mapping.</p>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/map/?country_prefix=US&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "stations": [
+    {
+      "station_id": "USC00123456",
+      "name": "STATION NAME",
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "elevation": 10.5,
+      "avg_tmin": 8.5,
+      "avg_tmax": 20.3,
+      "avg_temp": 14.4,
+      "total_precip": 1200.5,
+      "avg_snow_depth": 5.2
+    }
+  ]
+}</code></pre>
+
+    <hr>
+
+    <h2>Trends</h2>
+
+    <p><strong>GET</strong> <code>/trends/</code></p>
+
+    <p>Time series for temperature, precipitation, and snow depth, aggregated monthly or yearly depending on the period length.</p>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/trends/?country_prefix=US&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "temperature_points": [
+    {
+      "timestamp": "2000-01",
+      "avg_tmin": 5.2,
+      "avg_tmax": 15.8
+    }
+  ],
+  "precip_points": [
+    {
+      "timestamp": "2000-01",
+      "total_precip": 85.3
+    }
+  ],
+  "snow_points": [
+    {
+      "timestamp": "2000-01",
+      "avg_snow_depth": 12.5
+    }
+  ]
+}</code></pre>
+
+    <p><code>timestamp</code> is <code>YYYY-MM</code> for monthly aggregation and <code>YYYY</code> for yearly aggregation.</p>
+
+    <hr>
+
+    <h2>Seasons</h2>
+
+    <p><strong>GET</strong> <code>/seasons/</code></p>
+
+    <p>Seasonal and monthly climate statistics. Seasons:</p>
+
+    <ul>
+        <li>Winter: months 12, 1, 2</li>
+        <li>Spring: 3, 4, 5</li>
+        <li>Summer: 6, 7, 8</li>
+        <li>Autumn: 9, 10, 11</li>
+    </ul>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/seasons/?country_prefix=FR&start_year=2000&end_year=2019"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "seasonal_summary": {
+    "winter": {
+      "avg_temp": 5.2,
+      "temp_range": { "min": -3.0, "max": 15.0 },
+      "total_precip": 300.5,
+      "avg_snow_depth": 36.2
+    }
+  },
+  "monthly_data": [
+    {
+      "month": 1,
+      "avg_tmin": -2.5,
+      "avg_tmax": 8.5,
+      "avg_temp": 3.0,
+      "total_precip": 95.2,
+      "avg_snow_depth": 45.0,
+      "season": "Winter"
+    }
+  ]
+}</code></pre>
+
+    <hr>
+
+    <h2>Coverage</h2>
+
+    <p><strong>GET</strong> <code>/coverage/</code></p>
+
+    <p>Data coverage and missingness metrics.</p>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/coverage/?country_prefix=US&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "coverage_summary": {
+    "total_missing_days": 250,
+    "missing_percentage": 10.5,
+    "stations_count": 150
+  },
+  "coverage_per_station": [
+    {
+      "station_id": "USC00123456",
+      "coverage_percentage": 88.5,
+      "missing_days": 360,
+      "start_year": 1865,
+      "end_year": 2001
+    }
+  ],
+  "coverage_per_year": [
+    {
+      "year": 2000,
+      "missing_temp": 60,
+      "missing_precip": 20,
+      "missing_snow": 150
+    }
+  ]
+}</code></pre>
+
+    <hr>
+
+    <h2>Statistics</h2>
+
+    <p><strong>GET</strong> <code>/statistics/</code></p>
+
+    <p>Statistical indicators and distribution histograms for temperature, precipitation, and snow depth.</p>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/statistics/?country_prefix=US&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "stat_indicators": {
+    "mean": {
+      "mean_temp_min": 8.5,
+      "mean_temp_max": 20.3,
+      "mean_precip": 95.2,
+      "mean_snow": 12.5
+    },
+    "std": {
+      "std_temp_min": 5.2,
+      "std_temp_max": 6.8,
+      "std_precip": 45.3,
+      "std_snow": 8.7
+    },
+    "skewness": {
+      "skew_temp_min": 0.3,
+      "skew_temp_max": -0.2,
+      "skew_precip": 1.5,
+      "skew_snow": 2.1
+    },
+    "range": {
+      "range_temp_min": { "start": -15.0, "end": 25.0 },
+      "range_temp_max": { "start": 5.0, "end": 45.0 },
+      "range_precip": { "start": 0.0, "end": 500.0 },
+      "range_snow": { "start": 0.0, "end": 150.0 }
+    }
+  },
+  "data_points": {
+    "max_temp": [
+      { "start": 0, "end": 10, "count": 50 }
+    ],
+    "min_temp": [
+      { "start": -10, "end": 0, "count": 45 }
+    ],
+    "precipitation": [
+      { "start": 0, "end": 50, "count": 200 }
+    ],
+    "snow_depth": [
+      { "start": 0, "end": 10, "count": 300 }
+    ]
+  }
+}</code></pre>
+
+    <hr>
+
+    <h2>Extreme Events</h2>
+
+    <p><strong>GET</strong> <code>/extreme_events/</code></p>
+
+    <p>Extreme event statistics (totals, yearly counts, and most recent events) for:</p>
+
+    <ul>
+        <li>Heatwaves</li>
+        <li>Coldwaves</li>
+        <li>Heavy precipitation</li>
+        <li>Heavy snowfall</li>
+    </ul>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/extreme_events/?country_prefix=US&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "heatwave": {
+    "total_count": 60,
+    "yearly_counts": [
+      { "year": 2000, "count": 12 }
+    ],
+    "most_recent": {
+      "date": "2016-08-02",
+      "value": 38.5
+    }
+  },
+  "coldwave": {
+    "total_count": 50,
+    "yearly_counts": [
+      { "year": 2000, "count": 8 }
+    ],
+    "most_recent": {
+      "date": "2001-12-20",
+      "value": -10.0
+    }
+  },
+  "heavy_precipitation": {
+    "total_count": 20,
+    "yearly_counts": [
+      { "year": 2000, "count": 5 }
+    ],
+    "most_recent": {
+      "date": "2010-04-08",
+      "value": 200.0
+    }
+  },
+  "heavy_snowfall": {
+    "total_count": 10,
+    "yearly_counts": [
+      { "year": 2000, "count": 2 }
+    ],
+    "most_recent": {
+      "date": "2011-01-25",
+      "value": 20.0
+    }
+  }
+}</code></pre>
+
+    <hr>
+
+    <h2>Comparisons</h2>
+
+    <p><strong>GET</strong> <code>/comparisons/</code></p>
+
+    <p>Compares climate metrics between two countries.</p>
+
+    <p><strong>Query Parameters:</strong></p>
+
+    <ul>
+        <li><code>country_A_prefix</code> (string, required)</li>
+        <li><code>country_B_prefix</code> (string, required)</li>
+        <li><code>start_year</code> (integer, required)</li>
+        <li><code>end_year</code> (integer, required)</li>
+    </ul>
+
+    <p><strong>Example Request:</strong></p>
+
+    <pre><code>curl "http://localhost:8000/comparisons/?country_A_prefix=US&country_B_prefix=FR&start_year=2000&end_year=2004"</code></pre>
+
+    <p><strong>Response Structure (example):</strong></p>
+
+    <pre><code>{
+  "country_A_summary": {
+    "avg_temp": 15.2,
+    "temp_range": { "start": 5.0, "end": 30.0 },
+    "total_precip": 500.5,
+    "extreme_events": 40
+  },
+  "country_B_summary": {
+    "avg_temp": 12.8,
+    "temp_range": { "start": 0.0, "end": 28.0 },
+    "total_precip": 600.3,
+    "extreme_events": 35
+  },
+  "difference": {
+    "avg_temp": 2.4,
+    "total_precip": -99.8,
+    "extreme_events": 5
+  },
+  "data_point": {
+    "max_temp_A": [
+      { "timestamp": "2000-01", "max_temp": 25.0 }
+    ],
+    "max_temp_B": [
+      { "timestamp": "2000-01", "max_temp": 22.0 }
+    ],
+    "min_temp_A": [
+      { "timestamp": "2000-01", "min_temp": 5.0 }
+    ],
+    "min_temp_B": [
+      { "timestamp": "2000-01", "min_temp": 2.0 }
+    ],
+    "total_precip_A": [
+      { "timestamp": "2000-01", "total_precip": 85.0 }
+    ],
+    "total_precip_B": [
+      { "timestamp": "2000-01", "total_precip": 95.0 }
+    ]
+  }
+}</code></pre>
+
+    <footer>
+        <p>GHCND Big Data API Server Documentation</p>
+    </footer>
+</body>
+</html>
+

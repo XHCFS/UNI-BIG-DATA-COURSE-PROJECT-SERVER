@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations and Maintenance - GHCND API Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="index.html">GHCND Big Data API Server</a></h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="setup.html">Setup</a>
+            <a href="running.html">Running</a>
+            <a href="api.html">API</a>
+            <a href="operations.html">Operations</a>
+        </nav>
+    </header>
+
+    <h1>Operations and Maintenance</h1>
+
+    <h2>Data Correction and Regeneration</h2>
+
+    <p>If an aggregated HDFS table is created with an incorrect schema or data (for example, due to pointing a Spark job at the wrong input directory), remove it and regenerate:</p>
+
+    <pre><code>hdfs dfs -rm -r /ghcnd/agg_tables/yearly_aggregates
+spark-submit scripts/agg_tables/agg_table_yearly_aggregates.py</code></pre>
+
+    <p>Apply the same pattern for other tables under <code>/ghcnd/agg_tables/</code> as needed.</p>
+
+    <h2>Spark Temporary Directories</h2>
+
+    <p>The API uses a long-lived <code>SparkSession</code> running under a <code>systemd</code> service. If <code>/tmp</code> is cleaned aggressively, Spark may experience missing block manager directories (errors mentioning <code>/tmp/blockmgr-...</code>).</p>
+
+    <p>In such cases, restart the service to create new temporary directories:</p>
+
+    <pre><code>sudo systemctl restart ghcnd-api</code></pre>
+
+    <h2>Null Values in Responses</h2>
+
+    <p>When no data is found for a requested combination of <code>country_prefix</code>, <code>start_year</code>, and <code>end_year</code>, some endpoints return <code>null</code> values rather than failing:</p>
+
+    <ul>
+        <li>Aggregate metrics (means, sums, ranges) may be <code>null</code></li>
+        <li>Extreme event records may have <code>null</code> <code>date</code> or <code>value</code></li>
+    </ul>
+
+    <p>Client code should be written to handle <code>null</code> values explicitly.</p>
+
+    <h2>Monitoring</h2>
+
+    <p>Use standard <code>systemd</code> and journal commands:</p>
+
+    <pre><code>sudo systemctl status ghcnd-api
+journalctl -u ghcnd-api -f</code></pre>
+
+    <p>Monitor:</p>
+
+    <ul>
+        <li>Application logs (FastAPI and Uvicorn)</li>
+        <li>Spark logs and warnings</li>
+        <li>HDFS health and disk usage</li>
+    </ul>
+
+    <h2>Analysis and Spark Helper Scripts</h2>
+
+    <p>The repository includes several additional shell and Python helpers:</p>
+
+    <ul>
+        <li><code>scripts/run_spark.sh</code>: Wrapper for <code>spark-submit</code> that standardises Spark memory, temporary directories, Hadoop configuration, and logging. Use this for all aggregation jobs under <code>scripts/agg_tables/</code>.</li>
+        <li><code>scripts/exploratory_data_analysis.sh</code>: Convenience script for running exploratory Spark analysis over the GHCND data.</li>
+        <li><code>scripts/spark_jobs.py</code>: Python module that can be extended to orchestrate or batch multiple Spark jobs.</li>
+        <li><code>deploy.sh</code> / <code>local_deploy.sh</code>: Deployment helpers that fetch the latest code for a given branch and restart the <code>ghcnd-api</code> systemd service (remote and local variants respectively).</li>
+    </ul>
+
+    <h2>Acknowledgements</h2>
+
+    <ul>
+        <li>NOAA for providing the GHCND dataset.</li>
+        <li>Kaggle for hosting the dataset.</li>
+        <li>Apache Hadoop and Apache Spark for the data processing stack.</li>
+        <li>FastAPI and Uvicorn for the API framework and ASGI server.</li>
+    </ul>
+
+    <footer>
+        <p>GHCND Big Data API Server Documentation</p>
+    </footer>
+</body>
+</html>
+
