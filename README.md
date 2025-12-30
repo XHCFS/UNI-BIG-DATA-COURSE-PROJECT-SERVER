@@ -58,6 +58,14 @@ Complete documentation is available:
 
 ---
 
+## Example Dashboard (Sister Repository)
+
+An example application that consumes this API is the climatology dashboard repository:
+
+- [UNI-BIG-DATA-CIE427-COURSE-PROJECT](https://github.com/XHCFS/UNI-BIG-DATA-CIE427-COURSE-PROJECT) – A Streamlit-based climatology report dashboard optimized using Hadoop that uses these API endpoints as its data source.
+
+---
+
 ## Quick Start
 
 1. Install prerequisites (Java 17, Hadoop, Spark, Python 3.10+)
